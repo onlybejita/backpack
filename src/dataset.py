@@ -1,7 +1,7 @@
 import os
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-from tokenizer import Tokenizer
+from .tokenizer import Tokenizer
 
 
 class TextDataset(Dataset):
