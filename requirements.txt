@@ -2,3 +2,4 @@ torch==1.9.0
 torchvision==0.10.0
 transformers==4.11.2
 nltk==3.6.5
+datasets==2.13.1
