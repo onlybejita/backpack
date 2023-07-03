@@ -1,6 +1,6 @@
 # 🎒 Backpack Language Model Implementation 🎒
 
-I'm attempting to teach myself more about new and novel model architectures by trying to implement them in Python. This repository contains an attempt at a basic Python implementation of the Backpack Language Model as described in the paper [Backpack: A New Neural Architecture for NLP](https://arxiv.org/pdf/2305.16765.pdf).
+I'm attempting to teach myself more about new and novel model architectures by trying to implement them in Python. This repository contains an attempt at a basic Python implementation of the Backpack Language Model as described in the paper [Backpack: A New Neural Architecture for NLP](https://arxiv.org/pdf/2305.16765.pdf). This implementation is still very much a work in progress.
 
 ## Overview
 
