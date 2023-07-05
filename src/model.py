@@ -8,9 +8,7 @@ class Backpack(nn.Module):
 
         # The sense vectors are initialized as a 3D tensor
         self.sense_vectors = nn.Parameter(torch.rand(vocab_size, sense_size, embedding_dim))
-
-        # The context-dependent weights are computed by a multi-head attention layer
-        self.attention = nn.MultiheadAttention(embedding_dim, nhead)
+        self.sense_vectors = nn.ReLU()(self.sense_vectors)  # Apply ReLU to ensure non-negativity
 
         # The rest of the model is a standard Transformer encoder
         self.pos_encoder = PositionalEncoding(embedding_dim)
@@ -20,7 +18,7 @@ class Backpack(nn.Module):
 
     def forward(self, src):
         # The input is a sequence of token indices
-        # For each token, we compute a context-dependent, non-negative linear combination of its sense vectors
+        # For each token, wecompute a context-dependent, non-negative linear combination of its sense vectors
         word_embeddings = self.get_word_embeddings(src)
 
         # The rest of the forward pass is the same as a standard Transformer encoder
@@ -30,9 +28,11 @@ class Backpack(nn.Module):
 
     def get_word_embeddings(self, src):
         # This method computes a context-dependent, non-negative linear combination of the sense vectors for each token
-        # The context-dependent weights are computed by the attention layer
+        # The context-dependent weights are computed by a dot product between the sense vectors and a context vector
         word_senses = self.sense_vectors[src]
-        weights = self.attention(word_senses, word_senses, word_senses)[0]
+        context_vector = torch.mean(word_senses, dim=1, keepdim=True)
+        weights = torch.bmm(word_senses, context_vector.transpose(1, 2))
+        weights = nn.Softmax(dim=1)(weights)
         return torch.bmm(weights, word_senses)
 
     def analyze_sense_vectors(self, word_index):

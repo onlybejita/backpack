@@ -10,31 +10,32 @@ def train(model, dataloader, loss_fn, device, save_interval, save_dir, num_epoch
     # Create the learning rate scheduler
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=len(dataloader)*num_epochs)
 
-    total_loss = 0
+    for epoch in range(num_epochs):
+        total_loss = 0
 
-    for batch, (input, target) in enumerate(dataloader):
-        input = input.to(device)
-        target = target.to(device)
+        for batch, (input, target) in enumerate(dataloader):
+            input = input.to(device)
+            target = target.to(device)
 
-        optimizer.zero_grad()
+            optimizer.zero_grad()
 
-        output = model(input)
-        loss = loss_fn(output.view(-1, model.vocab_size), target.view(-1))
+            output = model(input)
+            loss = loss_fn(output.view(-1, model.vocab_size), target.view(-1))
 
-        loss.backward()
-        optimizer.step()
+            loss.backward()
+            optimizer.step()
 
-        # Step the learning rate scheduler
-        scheduler.step()
+            # Step the learning rate scheduler
+            scheduler.step()
 
-        total_loss += loss.item()
+            total_loss += loss.item()
 
-        # Save the model's parameters every save_interval batches
-        if batch % save_interval == 0:
-            torch.save(model.state_dict(), f"{save_dir}/model_{batch}.pt")
+            # Print out the training progress
+            if batch % 100 == 0:
+                print(f"Batch {batch}, Loss {loss.item()}")
 
-        # Print out the training progress
-        if batch % 100 == 0:
-            print(f"Batch {batch}, Loss {loss.item()}")
+        # Save the model's parameters every save_interval epochs
+        if epoch % save_interval == 0:
+            torch.save(model.state_dict(), f"{save_dir}/model_{epoch}.pt")
 
-    return total_loss / len(dataloader)
+        print(f"Epoch {epoch}, Avg Loss {total_loss / len(dataloader)}")

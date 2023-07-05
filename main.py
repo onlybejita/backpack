@@ -1,4 +1,5 @@
 import torch
+from transformers import get_linear_schedule_with_warmup
 from torch.optim.lr_scheduler import StepLR
 from src.dataset import get_dataloaders
 from src.model import Backpack
@@ -22,13 +23,13 @@ model = Backpack(
 ).to(device)
 
 # Create the loss function
-loss_fn = get_loss()
+loss_fn = get_loss(model)
 
 # Create the optimizer
 optimizer = get_optimizer(model, learning_rate=0.001)
 
 # Create the learning rate scheduler
-scheduler = StepLR(optimizer, step_size=1, gamma=0.95)
+scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=len(train_dataloader)*10)
 
 # Initialize the best validation loss
 best_val_loss = float("inf")
@@ -45,6 +46,10 @@ for epoch in range(10):
     if val_loss < best_val_loss:
         best_val_loss = val_loss
         torch.save(model.state_dict(), "models/best_model.pt")
+
+    # Save the model every 5 epochs
+    if epoch % 5 == 0:
+        torch.save(model.state_dict(), f"models/model_{epoch}.pt")
 
     # Step the learning rate scheduler
     scheduler.step()
