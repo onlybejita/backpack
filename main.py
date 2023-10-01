@@ -1,11 +1,10 @@
 import torch
 from transformers import get_linear_schedule_with_warmup
-from torch.optim.lr_scheduler import StepLR
 from src.dataset import get_dataloaders
 from src.model import Backpack
 from src.loss import get_loss
 from src.optimizer import get_optimizer
-from src.train import train
+from src.train import Trainer  # Import the Trainer class
 from src.validate import validate
 from src.evaluate import evaluate
 
@@ -31,15 +30,18 @@ optimizer = get_optimizer(model, learning_rate=0.001)
 # Create the learning rate scheduler
 scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=len(train_dataloader)*10)
 
+# Initialize the Trainer
+trainer = Trainer(model, loss_fn, optimizer, scheduler, device)
+
 # Initialize the best validation loss
 best_val_loss = float("inf")
 
 # Run the training loop
 for epoch in range(10):
-    train_loss = train(model, train_dataloader, loss_fn, optimizer, device)
+    train_loss = trainer.train_one_epoch(train_dataloader)
     print(f"Epoch {epoch}, Train Loss {train_loss}")
 
-    val_loss = validate(model, val_dataloader, loss_fn, device)
+    val_loss = trainer.validate(val_dataloader)
     print(f"Epoch {epoch}, Val Loss {val_loss}")
 
     # Save the best model
@@ -49,14 +51,13 @@ for epoch in range(10):
 
     # Save the model every 5 epochs
     if epoch % 5 == 0:
-        torch.save(model.state_dict(), f"models/model_{epoch}.pt")
+        trainer.save_model(epoch)
 
     # Step the learning rate scheduler
     scheduler.step()
 
 # Load the best model
 model.load_state_dict(torch.load("models/best_model.pt"))
-
 
 # Define a simple text generation function
 def generate_text(model, device, max_length=100):
@@ -72,7 +73,6 @@ def generate_text(model, device, max_length=100):
             input = torch.cat([input, word.unsqueeze(0).unsqueeze(0)], dim=1)
 
     return output
-
 
 # Define a set of reference texts
 references = [[i for i in range(100)] for _ in range(100)]

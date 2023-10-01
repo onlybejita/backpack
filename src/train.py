@@ -1,41 +1,55 @@
 import torch
-from transformers import AdamW, get_linear_schedule_with_warmup
+from transformers import get_linear_schedule_with_warmup
+from tqdm import tqdm
 
-def train(model, dataloader, loss_fn, device, save_interval, save_dir, num_epochs):
-    model.train()
+class Trainer:
+    def __init__(self, model, loss_fn, optimizer, scheduler, device, save_dir="models"):
+        self.model = model
+        self.loss_fn = loss_fn
+        self.optimizer = optimizer
+        self.scheduler = scheduler
+        self.device = device
+        self.save_dir = save_dir
 
-    # Create the AdamW optimizer
-    optimizer = AdamW(model.parameters(), lr=1e-5, weight_decay=0.01)
-
-    # Create the learning rate scheduler
-    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=len(dataloader)*num_epochs)
-
-    for epoch in range(num_epochs):
+    def train_one_epoch(self, dataloader):
+        self.model.train()
         total_loss = 0
+        dataloader_len = len(dataloader)
 
-        for batch, (input, target) in enumerate(dataloader):
-            input = input.to(device)
-            target = target.to(device)
+        for batch, (input, target) in enumerate(tqdm(dataloader)):
+            input = input.to(self.device)
+            target = target.to(self.device)
 
-            optimizer.zero_grad()
-
-            output = model(input)
-            loss = loss_fn(output.view(-1, model.vocab_size), target.view(-1))
+            self.optimizer.zero_grad()
+            output = self.model(input)
+            loss = self.loss_fn(output, target)
 
             loss.backward()
-            optimizer.step()
-
-            # Step the learning rate scheduler
-            scheduler.step()
+            self.optimizer.step()
 
             total_loss += loss.item()
 
-            # Print out the training progress
-            if batch % 100 == 0:
-                print(f"Batch {batch}, Loss {loss.item()}")
+        avg_loss = total_loss / dataloader_len
+        return avg_loss
 
-        # Save the model's parameters every save_interval epochs
-        if epoch % save_interval == 0:
-            torch.save(model.state_dict(), f"{save_dir}/model_{epoch}.pt")
+    def validate(self, dataloader):
+        self.model.eval()
+        total_loss = 0
+        dataloader_len = len(dataloader)
 
-        print(f"Epoch {epoch}, Avg Loss {total_loss / len(dataloader)}")
+        with torch.no_grad():
+            for input, target in dataloader:
+                input = input.to(self.device)
+                target = target.to(self.device)
+
+                output = self.model(input)
+                loss = self.loss_fn(output, target)
+
+                total_loss += loss.item()
+
+        avg_loss = total_loss / dataloader_len
+        return avg_loss
+
+    def save_model(self, epoch):
+        torch.save(self.model.state_dict(), f"{self.save_dir}/model_{epoch}.pt")
+
